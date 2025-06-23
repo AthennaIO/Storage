@@ -9,8 +9,11 @@
 
 export * from '#src/types'
 
+export * from '#src/facades/Storage'
 export * from '#src/storage/StorageImpl'
 export * from '#src/factories/DriverFactory'
 export * from '#src/storage/drivers/Driver'
 export * from '#src/storage/drivers/FSDriver'
 export * from '#src/storage/drivers/S3Driver'
+export * from '#src/providers/StorageProvider'
+export * from '#src/storage/drivers/FakeDriver'
