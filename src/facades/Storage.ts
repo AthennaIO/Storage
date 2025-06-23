@@ -7,7 +7,7 @@
  * file that was distributed with this source code.
  */
 
-export * from '#src/types/DriverOptions'
-export * from '#src/types/FSDriverOptions'
-export * from '#src/types/S3DriverOptions'
-export * from '#src/types/FakeDriverOptions'
+import { Facade } from '@athenna/ioc'
+import type { StorageImpl } from '#src'
+
+export const Storage = Facade.createFor<StorageImpl>('Athenna/Core/Storage')

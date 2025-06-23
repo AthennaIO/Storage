@@ -1,5 +1,5 @@
 /**
- * @athenna/template
+ * @athenna/storage
  *
  * (c) João Lenon <lenon@athenna.io>
  *

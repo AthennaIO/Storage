@@ -7,7 +7,11 @@
  * file that was distributed with this source code.
  */
 
-export * from '#src/types/DriverOptions'
-export * from '#src/types/FSDriverOptions'
-export * from '#src/types/S3DriverOptions'
-export * from '#src/types/FakeDriverOptions'
+import type { S3ClientConfig } from '@aws-sdk/client-s3'
+
+export type S3DriverOptions = {
+  /**
+   * The bucket from which to read and write files
+   */
+  bucket: string
+} & S3ClientConfig

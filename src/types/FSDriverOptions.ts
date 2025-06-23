@@ -7,7 +7,9 @@
  * file that was distributed with this source code.
  */
 
-export * from '#src/types/DriverOptions'
-export * from '#src/types/FSDriverOptions'
-export * from '#src/types/S3DriverOptions'
-export * from '#src/types/FakeDriverOptions'
+export type FSDriverOptions = {
+  /**
+   * Define the root path where files will be stored.
+   */
+  root: string
+}

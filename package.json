@@ -1,12 +1,12 @@
 {
-  "name": "@athenna/template",
+  "name": "@athenna/storage",
   "version": "5.0.0",
-  "description": "Template for new projects.",
+  "description": "The Athenna filesystem provider.",
   "license": "MIT",
   "author": "João Lenon <lenon@athenna.io>",
-  "bugs": "https://github.com/AthennaIO/Template/issues",
-  "repository": "https://github.com/AthennaIO/Template.git",
-  "homepage": "https://github.com/AthennaIO/Template#readme",
+  "bugs": "https://github.com/AthennaIO/Storage/issues",
+  "repository": "https://github.com/AthennaIO/Storage.git",
+  "homepage": "https://github.com/AthennaIO/Storage#readme",
   "keywords": [
     "esm",
     "athenna"
@@ -50,7 +50,8 @@
     "#tests": "./tests/index.js"
   },
   "devDependencies": {
-    "@athenna/common": "^5.9.0",
+    "@athenna/common": "^5.10.0",
+    "@athenna/ioc": "^5.1.0",
     "@athenna/test": "^5.3.0",
     "@athenna/tsconfig": "^5.0.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -160,5 +161,9 @@
         }
       ]
     }
+  },
+  "dependencies": {
+    "@athenna/config": "^5.3.0",
+    "@aws-sdk/client-s3": "^3.832.0"
   }
 }
