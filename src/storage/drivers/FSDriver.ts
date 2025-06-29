@@ -9,7 +9,7 @@
 
 import { sep } from 'node:path'
 import { debug } from '#src/debug'
-import { File } from '@athenna/common'
+import { File, Folder } from '@athenna/common'
 import type { Readable } from 'node:stream'
 import { Driver } from '#src/storage/drivers/Driver'
 import type { FSDriverOptions } from '#src/types/FSDriverOptions'
@@ -138,6 +138,34 @@ export class FSDriver extends Driver {
     debug('deleting file %s%s%s', this.options.root, sep, key)
 
     await File.safeRemove(`${this.options.root}${sep}${key}`)
+
+    return this
+  }
+
+  /**
+   * Deletes the files and directories matching the provided
+   * prefix.
+   */
+  public async deleteAll(prefix?: string) {
+    debug(
+      'deleting all files matching prefix %s%s%s',
+      this.options.root,
+      sep,
+      prefix
+    )
+
+    if (!prefix) {
+      await Folder.safeRemove(this.options.root)
+
+      /**
+       * Recreate the folder but empty.
+       */
+      await new Folder(this.options.root).load()
+
+      return this
+    }
+
+    await Folder.safeRemove(`${this.options.root}${sep}${prefix}`)
 
     return this
   }

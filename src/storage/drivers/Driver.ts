@@ -63,4 +63,10 @@ export abstract class Driver extends Macroable {
    * a noop.
    */
   public abstract delete(key: string): Promise<this>
+
+  /**
+   * Deletes the files and directories matching the provided
+   * prefix.
+   */
+  public abstract deleteAll(key: string): Promise<this>
 }

@@ -7,6 +7,8 @@
  * file that was distributed with this source code.
  */
 
+import mimeTypes from 'mime-types'
+
 import {
   S3Client,
   GetObjectCommand,
@@ -14,16 +16,21 @@ import {
   CopyObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
   type GetObjectCommandInput,
   type PutObjectCommandInput,
   type CopyObjectCommandInput,
   type HeadObjectCommandInput,
-  type DeleteObjectCommandInput
+  type DeleteObjectCommandInput,
+  type ListObjectsV2CommandInput,
+  type DeleteObjectsCommandInput
 } from '@aws-sdk/client-s3'
 
 import { sep } from 'node:path'
 import { debug } from '#src/debug'
 import type { Readable } from 'node:stream'
+import { Upload } from '@aws-sdk/lib-storage'
 import { Driver } from '#src/storage/drivers/Driver'
 import type { S3DriverOptions } from '#src/types/S3DriverOptions'
 
@@ -82,6 +89,22 @@ export class S3Driver extends Driver {
    */
   protected createCopyObjectCommand(options: CopyObjectCommandInput) {
     return new CopyObjectCommand(options)
+  }
+
+  /**
+   * Creates S3 "ListObjectsV2Command". Feel free to override this method to
+   * manually create the command
+   */
+  protected createListObjectsV2Command(options: ListObjectsV2CommandInput) {
+    return new ListObjectsV2Command(options)
+  }
+
+  /**
+   * Creates S3 "DeleteObjectsCommand". Feel free to override this method to
+   * manually create the command
+   */
+  protected createDeleteObjectsCommand(options: DeleteObjectsCommandInput) {
+    return new DeleteObjectsCommand(options)
   }
 
   /**
@@ -156,7 +179,8 @@ export class S3Driver extends Driver {
     const command = this.createPutObjectCommand({
       Key: key,
       Body: content,
-      Bucket: this.options.bucket
+      Bucket: this.options.bucket,
+      ContentType: mimeTypes.lookup(key) as string
     })
 
     await this.client.send(command)
@@ -179,32 +203,19 @@ export class S3Driver extends Driver {
       key
     )
 
-    await new Promise((resolve, reject) => {
-      /**
-       * GCS internally creates a pipeline of stream and invokes the "_destroy" method
-       * at several occasions. Because of that, the "_destroy" method emits an event
-       * which cannot handled within this block of code.
-       *
-       * So the only way I have been able to make GCS streams work is by ditching the
-       * pipeline method and relying on the "pipe" method instead.
-       */
-      content.once('error', reject)
-
-      try {
-        const command = this.createPutObjectCommand({
-          Key: key,
-          Body: content,
-          Bucket: this.options.bucket
-        })
-
-        return this.client
-          .send(command)
-          .then(() => resolve(this))
-          .catch(reject)
-      } catch (error) {
-        reject(error)
-      }
+    const upload = new Upload({
+      client: this.client,
+      params: {
+        Bucket: this.options.bucket,
+        Key: key,
+        Body: content,
+        ContentType: mimeTypes.lookup(key) as string
+      },
+      queueSize: 4,
+      partSize: 5 * 1024 * 1024
     })
+
+    await upload.done()
 
     return this
   }
@@ -217,9 +228,9 @@ export class S3Driver extends Driver {
     debug('copying file from %s to %s', from, to)
 
     const command = this.createCopyObjectCommand({
-      Key: from,
+      Key: to,
       Bucket: this.options.bucket,
-      CopySource: `/${this.options.bucket}/${to}`
+      CopySource: `/${this.options.bucket}/${from}`
     })
 
     await this.client.send(command)
@@ -256,5 +267,70 @@ export class S3Driver extends Driver {
     await this.client.send(command)
 
     return this
+  }
+
+  /**
+   * Deletes the files and directories matching the provided
+   * prefix.
+   */
+  public async deleteAll(prefix?: string) {
+    if (!prefix) {
+      debug('deleting all files from %s', this.options.bucket)
+
+      await this.deleteAllRecursively('/')
+
+      return this
+    }
+
+    debug(
+      'deleting all files matching prefix %s%s%s',
+      this.options.bucket,
+      sep,
+      prefix
+    )
+
+    await this.deleteAllRecursively(prefix)
+
+    return this
+  }
+
+  private async deleteAllRecursively(
+    prefix?: string,
+    paginationToken?: string
+  ) {
+    const response = await this.client.send(
+      this.createListObjectsV2Command({
+        Bucket: this.options.bucket,
+        ContinuationToken: paginationToken,
+        ...(prefix !== '/' ? { Prefix: prefix } : {})
+      })
+    )
+
+    if (!response.Contents || !response.Contents.length) {
+      return
+    }
+
+    await this.client.send(
+      this.createDeleteObjectsCommand({
+        Bucket: this.options.bucket,
+        Delete: {
+          Objects: Array.from(response.Contents).map(file => {
+            return {
+              Key: file.Key
+            }
+          }),
+          Quiet: true
+        }
+      })
+    )
+
+    if (response.NextContinuationToken) {
+      debug(
+        'deleting next batch of files with token %s',
+        response.NextContinuationToken
+      )
+
+      await this.deleteAllRecursively(prefix, response.NextContinuationToken)
+    }
   }
 }

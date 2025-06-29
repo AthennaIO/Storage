@@ -144,4 +144,14 @@ export class StorageImpl<Driver extends DriverImpl = any> extends Macroable {
 
     return this
   }
+
+  /**
+   * Deletes the files and directories matching the provided
+   * prefix.
+   */
+  public async deleteAll(prefix?: string) {
+    await this.driver.deleteAll(prefix)
+
+    return this
+  }
 }

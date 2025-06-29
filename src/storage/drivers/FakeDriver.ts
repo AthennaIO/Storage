@@ -124,4 +124,14 @@ export class FakeDriver {
 
     return this
   }
+
+  /**
+   * Deletes the files and directories matching the provided
+   * prefix.
+   */
+  public static async deleteAll(prefix?: string) {
+    debug('deleting file %s%s%s', this.options.root, sep, prefix)
+
+    return this
+  }
 }

@@ -17,7 +17,7 @@ export default class FSDriverTest {
   private bigContent = Buffer.alloc(Math.max(0, 1024 * 1024 * 200 - 2), 'l')
 
   @BeforeAll()
-  public async beforeEach() {
+  public async beforeAll() {
     await Config.loadAll(Path.fixtures('config'))
 
     new StorageProvider().register()
@@ -29,16 +29,75 @@ export default class FSDriverTest {
   }
 
   @Test()
+  public async shouldBeAbleToGetAFile({ assert }: Context) {
+    await Storage.disk('fs').put('file.txt', '123')
+
+    const content = await Storage.disk('fs').get('file.txt')
+
+    assert.deepEqual(content, '123')
+  }
+
+  @Test()
+  public async shouldBeAbleToGetAFileAsStream({ assert }: Context) {
+    assert.plan(1)
+
+    await Storage.disk('fs').put('file.txt', '123')
+
+    const stream = await Storage.disk('fs').getStream('file.txt')
+
+    await new Promise(resolve => {
+      stream.on('data', buffer => assert.deepEqual(buffer.toString(), '123')).on('end', resolve)
+    })
+  }
+
+  @Test()
   public async shouldBeAbleToStoreAFile({ assert }: Context) {
     await Storage.disk('fs').put('big.txt', this.bigContent)
 
-    assert.isTrue(File.existsSync(Path.storage('big.txt')))
+    assert.isTrue(File.existsSync(Path.storage('fs/big.txt')))
+  }
+
+  @Test()
+  public async shouldBeAbleToStreamAFile({ assert }: Context) {
+    await Storage.disk('fs').put('big.txt', this.bigContent)
+
+    const stream = await Storage.disk('fs').getStream('big.txt')
+
+    await Storage.disk('fs').putStream('big-copy.txt', stream)
+
+    assert.isTrue(File.existsSync(Path.storage('fs/big.txt')))
   }
 
   @Test()
   public async shouldBeAbleToVerifyThatAFileExists({ assert }: Context) {
     await Storage.disk('fs').put('big.txt', this.bigContent)
 
-    // assert.isTrue(await Storage.exists('big.txt'))
+    assert.isTrue(await Storage.exists('big.txt'))
+    assert.isFalse(await Storage.exists('not-found.txt'))
+  }
+
+  @Test()
+  public async shouldBeAbleToCopyAFile({ assert }: Context) {
+    await Storage.disk('fs').put('big.txt', this.bigContent)
+    await Storage.disk('fs').copy('big.txt', 'big-copy.txt')
+
+    assert.isTrue(await Storage.exists('big-copy.txt'))
+  }
+
+  @Test()
+  public async shouldBeAbleToMoveAFile({ assert }: Context) {
+    await Storage.disk('fs').put('big.txt', this.bigContent)
+    await Storage.disk('fs').move('big.txt', 'big-move.txt')
+
+    assert.isFalse(await Storage.exists('big.txt'))
+    assert.isTrue(await Storage.exists('big-move.txt'))
+  }
+
+  @Test()
+  public async shouldBeAbleToDeleteAFile({ assert }: Context) {
+    await Storage.disk('fs').put('big.txt', this.bigContent)
+    await Storage.disk('fs').delete('big.txt')
+
+    assert.isFalse(await Storage.exists('big.txt'))
   }
 }

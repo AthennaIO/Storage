@@ -29,7 +29,10 @@ export default {
   disks: {
     fs: {
       driver: 'fs',
-      root: Path.storage('fs')
+      root: Path.storage()
+    },
+    fake: {
+      driver: 'fake'
     },
     s3: {
       driver: 's3',
