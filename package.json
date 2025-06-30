@@ -1,6 +1,6 @@
 {
   "name": "@athenna/storage",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "The Athenna filesystem provider.",
   "license": "MIT",
   "author": "João Lenon <lenon@athenna.io>",
@@ -37,7 +37,8 @@
     "./types": "./src/types/index.js",
     "./package": "./package.json",
     "./package.json": "./package.json",
-    "./testing/plugins": "./src/testing/plugins/index.js"
+    "./testing/plugins": "./src/testing/plugins/index.js",
+    "./providers/StorageProvider": "./src/providers/StorageProvider.js"
   },
   "imports": {
     "#bin/*": "./bin/*.js",
@@ -53,7 +54,6 @@
     "@athenna/config": "^5.3.0",
     "@aws-sdk/client-s3": "^3.832.0",
     "@aws-sdk/lib-storage": "^3.839.0",
-    "@types/mime-types": "^3.0.1",
     "mime-types": "^3.0.1"
   },
   "devDependencies": {
@@ -62,6 +62,7 @@
     "@athenna/ioc": "^5.1.0",
     "@athenna/test": "^5.3.0",
     "@athenna/tsconfig": "^5.0.0",
+    "@types/mime-types": "^3.0.1",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "commitizen": "^4.3.1",
