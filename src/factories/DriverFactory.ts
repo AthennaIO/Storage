@@ -10,6 +10,7 @@
 import { Config } from '@athenna/config'
 import { FSDriver } from '#src/storage/drivers/FSDriver'
 import { S3Driver } from '#src/storage/drivers/S3Driver'
+import { FakeDriver } from '#src/storage/drivers/FakeDriver'
 import { NotFoundDriverException } from '#src/exceptions/NotFoundDriverException'
 import { NotImplementedConfigException } from '#src/exceptions/NotImplementedConfigException'
 
@@ -18,6 +19,7 @@ export class DriverFactory {
    * Driver of driver factory.
    */
   public static drivers: Map<string, { Driver: any }> = new Map()
+    .set('fake', { Driver: FakeDriver })
     .set('fs', { Driver: FSDriver })
     .set('s3', { Driver: S3Driver })
 

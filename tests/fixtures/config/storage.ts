@@ -37,6 +37,9 @@ export default {
       secret: Env('AWS_SECRET_ACCESS_KEY', ''),
       region: Env('AWS_REGION', ''),
       bucket: Env('AWS_S3_BUCKET_NAME', '')
+    },
+    nullDriver: {
+      driver: 'not-found'
     }
   }
 }
