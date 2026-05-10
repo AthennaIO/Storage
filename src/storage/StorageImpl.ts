@@ -11,8 +11,10 @@ import type {
   DriverOptions,
   FSDriverOptions,
   S3DriverOptions,
-  FakeDriverOptions
+  FakeDriverOptions,
+  SignedUrlOptions
 } from '#src/types'
+
 import { Macroable } from '@athenna/common'
 import type { Readable } from 'node:stream'
 import { DriverFactory } from '#src/factories/DriverFactory'
@@ -153,5 +155,17 @@ export class StorageImpl<Driver extends DriverImpl = any> extends Macroable {
     await this.driver.deleteAll(prefix)
 
     return this
+  }
+
+  /**
+   * Returns a time-limited signed URL the client can use to read or
+   * write the object directly, without proxying bytes through the
+   * application.
+   *
+   * Throws `NotImplementedDriverMethodException` for drivers that do
+   * not support signed URLs (e.g. `fs`).
+   */
+  public async getSignedUrl(key: string, options?: SignedUrlOptions) {
+    return this.driver.getSignedUrl(key, options)
   }
 }

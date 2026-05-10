@@ -7,12 +7,18 @@
  * file that was distributed with this source code.
  */
 
+import type {
+  SignedUrlOptions,
+  SignedUrlResult
+} from '#src/types/SignedUrlOptions'
+
 import { sep } from 'node:path'
 import { debug } from '#src/debug'
 import { File, Folder } from '@athenna/common'
 import type { Readable } from 'node:stream'
 import { Driver } from '#src/storage/drivers/Driver'
 import type { FSDriverOptions } from '#src/types/FSDriverOptions'
+import { NotImplementedDriverMethodException } from '#src/exceptions/NotImplementedDriverMethodException'
 
 export class FSDriver extends Driver {
   /**
@@ -168,5 +174,18 @@ export class FSDriver extends Driver {
     await Folder.safeRemove(`${this.options.root}${sep}${prefix}`)
 
     return this
+  }
+
+  /**
+   * The local filesystem has no native concept of a signed URL, so the
+   * driver throws an explicit error rather than fabricate one. Callers
+   * that need signed access for local files should use a different
+   * driver or implement a custom one.
+   */
+  public async getSignedUrl(
+    _key: string,
+    _options?: SignedUrlOptions
+  ): Promise<SignedUrlResult> {
+    throw new NotImplementedDriverMethodException('fs', 'getSignedUrl')
   }
 }

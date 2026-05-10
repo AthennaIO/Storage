@@ -11,6 +11,7 @@ import { Storage } from '#src/facades/Storage'
 import { File, Folder, Path } from '@athenna/common'
 import { StorageProvider } from '#src/providers/StorageProvider'
 import { Test, BeforeAll, type Context, AfterEach } from '@athenna/test'
+import { NotImplementedDriverMethodException } from '#src/exceptions/NotImplementedDriverMethodException'
 
 export default class FSDriverTest {
   // 200 MB of content
@@ -99,5 +100,10 @@ export default class FSDriverTest {
     await Storage.disk('fs').delete('big.txt')
 
     assert.isFalse(await Storage.exists('big.txt'))
+  }
+
+  @Test()
+  public async shouldThrowANotImplementedDriverMethodExceptionWhenCreatingASignedUrl({ assert }: Context) {
+    await assert.rejects(() => Storage.disk('fs').getSignedUrl('any.txt'), NotImplementedDriverMethodException)
   }
 }
