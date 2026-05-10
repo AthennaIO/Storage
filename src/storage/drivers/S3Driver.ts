@@ -9,6 +9,11 @@
 
 import mimeTypes from 'mime-types'
 
+import type {
+  SignedUrlOptions,
+  SignedUrlResult
+} from '#src/types/SignedUrlOptions'
+
 import {
   S3Client,
   GetObjectCommand,
@@ -33,6 +38,7 @@ import type { Readable } from 'node:stream'
 import { Upload } from '@aws-sdk/lib-storage'
 import { Driver } from '#src/storage/drivers/Driver'
 import type { S3DriverOptions } from '#src/types/S3DriverOptions'
+import { getSignedUrl as awsGetSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export class S3Driver extends Driver {
   /**
@@ -48,7 +54,21 @@ export class S3Driver extends Driver {
   public constructor(options: S3DriverOptions) {
     super()
     this.options = options
-    this.client = new S3Client(options)
+    /**
+     * `requestChecksumCalculation` and `responseChecksumValidation` default
+     * to `WHEN_REQUIRED` so the driver does not auto-inject the
+     * `x-amz-sdk-checksum-algorithm` / `x-amz-checksum-crc32` query params
+     * into presigned PUT URLs. Those params (a) are computed against an
+     * empty body and would always fail the signature once the browser
+     * sends real bytes and (b) trigger CORS preflights that buckets do
+     * not allow by default. Users can still opt in to full integrity
+     * checks by overriding either flag through `options`.
+     */
+    this.client = new S3Client({
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
+      ...options
+    })
   }
 
   /**
@@ -292,6 +312,47 @@ export class S3Driver extends Driver {
     await this.deleteAllRecursively(prefix)
 
     return this
+  }
+
+  /**
+   * Returns a time-limited signed URL the client can use to read or
+   * write the object directly against S3, without proxying bytes
+   * through the application.
+   */
+  public async getSignedUrl(
+    key: string,
+    options: SignedUrlOptions = {}
+  ): Promise<SignedUrlResult> {
+    const method = options.method ?? 'get'
+    const expiresIn = options.expiresIn ?? 300
+
+    debug(
+      'creating %s signed url %s%s%s (expires in %ds)',
+      method,
+      this.options.bucket,
+      sep,
+      key,
+      expiresIn
+    )
+
+    const command =
+      method === 'put'
+        ? this.createPutObjectCommand({
+            Key: key,
+            Bucket: this.options.bucket,
+            ContentType: options.contentType
+          })
+        : this.createGetObjectCommand({
+            Key: key,
+            Bucket: this.options.bucket,
+            ResponseContentType: options.responseContentType,
+            ResponseContentDisposition: options.contentDisposition
+          })
+
+    const url = await awsGetSignedUrl(this.client, command, { expiresIn })
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
+
+    return { url, method, key, expiresAt }
   }
 
   private async deleteAllRecursively(

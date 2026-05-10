@@ -103,4 +103,71 @@ export default class S3DriverTest {
 
     assert.isFalse(await Storage.disk('s3').exists('big.txt'))
   }
+
+  @Test()
+  public async shouldBeAbleToCreateASignedPutUrl({ assert }: Context) {
+    const result = await Storage.disk('s3').getSignedUrl('signed/put.txt', {
+      method: 'put',
+      contentType: 'text/plain'
+    })
+
+    const url = new URL(result.url)
+
+    assert.deepEqual(result.method, 'put')
+    assert.deepEqual(result.key, 'signed/put.txt')
+    assert.match(url.pathname, /\/signed\/put\.txt$/)
+    assert.isNotNull(url.searchParams.get('X-Amz-Signature'))
+    assert.deepEqual(url.searchParams.get('X-Amz-Expires'), '300')
+
+    /**
+     * Regression: the SDK must NOT auto-inject CRC32 checksum params,
+     * otherwise browser PUTs hit a CORS preflight failure.
+     */
+    assert.isNull(url.searchParams.get('x-amz-sdk-checksum-algorithm'))
+    assert.isNull(url.searchParams.get('x-amz-checksum-crc32'))
+  }
+
+  @Test()
+  public async shouldBeAbleToCreateASignedGetUrl({ assert }: Context) {
+    const result = await Storage.disk('s3').getSignedUrl('signed/get.txt')
+
+    const url = new URL(result.url)
+
+    assert.deepEqual(result.method, 'get')
+    assert.deepEqual(result.key, 'signed/get.txt')
+    assert.match(url.pathname, /\/signed\/get\.txt$/)
+    assert.isNotNull(url.searchParams.get('X-Amz-Signature'))
+  }
+
+  @Test()
+  public async shouldHonourCustomExpiresInForSignedUrls({ assert }: Context) {
+    const result = await Storage.disk('s3').getSignedUrl('signed/expiry.txt', {
+      method: 'put',
+      expiresIn: 60
+    })
+
+    const url = new URL(result.url)
+
+    assert.deepEqual(url.searchParams.get('X-Amz-Expires'), '60')
+    /**
+     * `expiresAt` is computed from `Date.now()` so it is bound to be very
+     * close to "60 seconds from now". Allow a small skew window.
+     */
+    const ms = new Date(result.expiresAt).getTime() - Date.now()
+    assert.isAbove(ms, 55 * 1000)
+    assert.isBelow(ms, 65 * 1000)
+  }
+
+  @Test()
+  public async shouldForwardResponseHeadersForSignedGetUrls({ assert }: Context) {
+    const result = await Storage.disk('s3').getSignedUrl('signed/download.txt', {
+      contentDisposition: 'attachment; filename="report.pdf"',
+      responseContentType: 'application/pdf'
+    })
+
+    const url = new URL(result.url)
+
+    assert.deepEqual(url.searchParams.get('response-content-disposition'), 'attachment; filename="report.pdf"')
+    assert.deepEqual(url.searchParams.get('response-content-type'), 'application/pdf')
+  }
 }

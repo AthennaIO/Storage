@@ -7,6 +7,11 @@
  * file that was distributed with this source code.
  */
 
+import type {
+  SignedUrlOptions,
+  SignedUrlResult
+} from '#src/types/SignedUrlOptions'
+
 import { Macroable } from '@athenna/common'
 import type { Readable } from 'node:stream'
 
@@ -69,4 +74,23 @@ export abstract class Driver extends Macroable {
    * prefix.
    */
   public abstract deleteAll(key: string): Promise<this>
+
+  /**
+   * Returns a time-limited signed URL the client can use to read or
+   * write the file directly, without proxying bytes through the
+   * application.
+   *
+   * - method `'get'` (default) issues a signed URL for downloading the
+   *   object.
+   * - method `'put'` issues a signed URL for uploading the object;
+   *   the client is expected to PUT the bytes at the returned URL with
+   *   the same `Content-Type` as the one passed in `options.contentType`.
+   *
+   * Drivers that have no notion of signed URLs (e.g. local filesystem)
+   * MUST throw `NotImplementedDriverMethodException`.
+   */
+  public abstract getSignedUrl(
+    key: string,
+    options?: SignedUrlOptions
+  ): Promise<SignedUrlResult>
 }

@@ -7,6 +7,11 @@
  * file that was distributed with this source code.
  */
 
+import type {
+  SignedUrlOptions,
+  SignedUrlResult
+} from '#src/types/SignedUrlOptions'
+
 import { sep } from 'node:path'
 import { debug } from '#src/debug'
 import { PassThrough, type Readable } from 'node:stream'
@@ -133,5 +138,33 @@ export class FakeDriver {
     debug('deleting file %s%s%s', this.options.root, sep, prefix)
 
     return this
+  }
+
+  /**
+   * Returns a deterministic fake signed URL so consumers can assert
+   * against it in tests without hitting any remote service.
+   */
+  public static async getSignedUrl(
+    key: string,
+    options: SignedUrlOptions = {}
+  ): Promise<SignedUrlResult> {
+    const method = options.method ?? 'get'
+    const expiresIn = options.expiresIn ?? 300
+
+    debug(
+      'creating fake %s signed url %s%s%s (expires in %ds)',
+      method,
+      this.options?.root,
+      sep,
+      key,
+      expiresIn
+    )
+
+    return {
+      url: `https://fake.storage/${method}/${key}?expires=${expiresIn}`,
+      method,
+      key,
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString()
+    }
   }
 }
